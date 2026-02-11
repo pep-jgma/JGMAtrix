@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JGMAtrix</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Montserrat", sans-serif; background: #fff; min-height: 100vh; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+header { text-align: center; margin-bottom: 40px; padding-bottom: 30px; border-bottom: 3px solid #000; }
+h1 { font-family: "Montserrat", sans-serif; font-size: 3em; font-weight: 700; color: #000; margin-bottom: 10px; letter-spacing: -0.02em; }
+.tagline { font-size: 15px; color: #666; font-weight: 400; }
+.score-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: #f9f9f9; border: 1px solid #e0e0e0; margin-bottom: 30px; }
+.score-item { text-align: center; }
+.score-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 5px; font-weight: 600; }
+.score-value { font-size: 28px; font-weight: 600; color: #000; }
+.grid-container { display: grid; grid-template-columns: 140px repeat(3, 1fr); grid-template-rows: 90px repeat(3, 120px); gap: 0; border: 2px solid #000; background: #000; margin-bottom: 30px; }
+.grid-header { background: #f5f5f5; color: #000; padding: 15px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 600; line-height: 1.3; border: 1px solid #000; }
+.grid-header.corner { background: #000; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+.grid-cell { background: white; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; border: 1px solid #e0e0e0; position: relative; overflow: hidden; }
+.grid-cell:hover:not(.correct):not(.incorrect) { background: #f9f9f9; }
+.grid-cell.correct { background: #e8f5e9; cursor: default; padding: 0; }
+.grid-cell.incorrect { background: #ffebee; cursor: default; }
+.cell-image { width: 100%; height: 100%; object-fit: cover; }
+.cell-checkmark { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.9); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.cell-answer { font-size: 14px; font-weight: 500; color: #000; text-align: center; word-wrap: break-word; margin-bottom: 8px; }
+.cell-status { font-size: 24px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 1000; }
+.modal.active { display: flex; }
+.modal-content { background: white; padding: 40px; max-width: 450px; width: 90%; border: 2px solid #000; position: relative; }
+.modal-content h2 { font-family: "Montserrat", sans-serif; font-size: 1.6em; color: #000; margin-bottom: 20px; line-height: 1.3; font-weight: 600; }
+.welcome-modal { max-width: 550px; }
+.welcome-modal h2 { font-size: 2em; margin-bottom: 15px; text-align: center; }
+.welcome-modal .subtitle { text-align: center; color: #666; margin-bottom: 25px; font-size: 15px; font-style: italic; }
+.instructions-list { text-align: left; margin: 25px 0; line-height: 1.8; }
+.instructions-list li { margin-bottom: 12px; color: #333; }
+.instructions-list li strong { color: #000; }
+.ready-text { text-align: center; font-size: 16px; font-weight: 600; margin: 25px 0 20px 0; color: #000; }
+.start-btn { width: 100%; padding: 18px; background: #000; color: white; border: none; font-size: 18px; font-weight: 600; cursor: pointer; font-family: "Montserrat", sans-serif; transition: background 0.2s; }
+.start-btn:hover { background: #333; }
+.autocomplete-wrapper { position: relative; margin-bottom: 20px; }
+.modal-input { width: 100%; padding: 15px; border: 2px solid #000; font-size: 16px; font-family: "Montserrat", sans-serif; }
+.modal-input:focus { outline: none; background: #f9f9f9; }
+.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #000; border-top: none; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+.autocomplete-list.show { display: block; }
+.autocomplete-item { padding: 12px 15px; cursor: pointer; font-size: 15px; border-bottom: 1px solid #e0e0e0; }
+.autocomplete-item:hover { background: #f5f5f5; }
+.autocomplete-item:last-child { border-bottom: none; }
+.modal-buttons { display: flex; gap: 10px; }
+.modal-btn { flex: 1; padding: 15px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: "Montserrat", sans-serif; }
+.modal-btn.submit { background: #000; color: white; }
+.modal-btn.submit:hover { background: #333; }
+.modal-btn.cancel { background: white; color: #000; border: 2px solid #000; }
+.modal-btn.cancel:hover { background: #f5f5f5; }
+.completion { text-align: center; padding: 30px; background: #f5f5f5; border: 2px solid #000; margin-top: 30px; display: none; }
+.completion h2 { font-family: "Montserrat", sans-serif; font-size: 2em; margin-bottom: 10px; font-weight: 700; }
+.result-grid { display: inline-grid; grid-template-columns: repeat(3, 30px); gap: 4px; margin: 20px 0; }
+.result-cell { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.share-btn { padding: 12px 30px; background: #3498db; color: white; border: none; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 20px; font-family: "Montserrat", sans-serif; margin-right: 10px; }
+.share-btn:hover { background: #2980b9; }
+.reset-btn { padding: 12px 30px; background: #000; color: white; border: none; cursor: pointer; font-size: 15px; font-weight: 600; margin-top: 20px; font-family: "Montserrat", sans-serif; }
+.reset-btn:hover { background: #333; }
+@media (max-width: 768px) { h1 { font-size: 2em; } .grid-container { grid-template-columns: 100px repeat(3, 1fr); grid-template-rows: 70px repeat(3, 100px); } .grid-header { font-size: 11px; padding: 10px; } }
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>JGMAtrix</h1><p class="tagline">How well do you know our portfolio?</p></header>
+<div class="score-bar"><div class="score-item"><div class="score-label">Correct</div><div class="score-value" id="score">0/9</div></div><div class="score-item"><div class="score-label">Guesses Left</div><div class="score-value" id="guesses">9</div></div></div>
+<div class="grid-container" id="grid"></div>
+<div class="completion" id="completion">
+<h2 id="completion-title">🎉 Grid Complete!</h2>
+<p>You got <span id="final-score">0</span> out of 9 correct.</p>
+<div id="result-display"></div>
+<button class="share-btn" onclick="shareResults()">Share Results</button>
+<button class="reset-btn" onclick="resetGame()">Play Again</button>
+</div>
+</div>
+<div id="welcome-modal" class="modal active">
+<div class="modal-content welcome-modal">
+<h2>How to Play JGMAtrix</h2>
+<p class="subtitle">Test your knowledge of JGMA's portfolio</p>
+<ul class="instructions-list">
+<li><strong>•</strong> Each square corresponds to one JGMA project that satisfies both the row and column categories.</li>
+<li><strong>•</strong> You have 9 total guesses to complete the grid.</li>
+<li><strong>•</strong> A square is correct only if the project clearly satisfies both conditions.</li>
+<li><strong>•</strong> Your score is simply how many squares you get right (0–9).</li>
+</ul>
+<p class="subtitle" style="margin-top: 20px;">This is about familiarity with the firm's work, not perfection.</p>
+<p class="ready-text">Ready to play?</p>
+<button class="start-btn" onclick="startGame()">Let's Go</button>
+</div>
+</div>
+<div id="modal" class="modal"><div class="modal-content"><h2 id="modal-question"></h2><div class="autocomplete-wrapper"><input type="text" id="modal-input" class="modal-input" placeholder="Start typing project name..." autocomplete="off"><div class="autocomplete-list" id="autocomplete-list"></div></div><div class="modal-buttons"><button class="modal-btn submit" onclick="submitAnswer()">Submit</button><button class="modal-btn cancel" onclick="closeModal()">Cancel</button></div></div></div>
+<script>
+const GAME_DATA = {"rows":["2000-2010","2011-2020","2021-Present"],"cols":["Workplace/Office","Residential/Housing","Cultural/Educational/Civic"],"answers":{"0-0":["Instituto Health Sciences Career Academy","UNO Soccer Academy"],"0-1":["Bieniek Residence"],"0-2":["Latino Fashion Week"],"1-0":["Westfield Old Orchard Mall"],"1-1":["UNO Soccer Academy"],"1-2":["UNO Soccer Academy"],"2-0":["UNO Soccer Academy"],"2-1":["UNO Soccer Academy"],"2-2":["UNO Soccer Academy"]},"projectLibrary":["PROJECT NAME","Instituto Health Sciences Career Academy","UNO Soccer Academy","Bieniek Residence","Latino Fashion Week","Northeastern Illinois University El Centro","Westfield Old Orchard Mall","SAIC Photography Dept","CCHC - Calumet City","CCHC - South Holland","SAIC Interiors - 116 S Michigan + 36 S Wabash","KLEO Master Plan","Lathrop Homes Phase One","3Eleven Tower","Starwood Wellington Green Entertainment Complex","Ancona School Auditorium","Cristo Rey St Martin Phase 1","Cristo Rey St Martin Phase 2 A+E Services","Gads Hill Early Learning Center","Esperanza Health Center","SOS Children's Villages","Humboldt Park Health Hospital","Pilsen Mural Park Creative Campus","SAIC Wellness Center","CHA Overton Building Offices","CGLA","Daley College MTEC","Daley College Exterior Re-Envisioned","Sip of Hope Coffee Bar","Neal Math + Science Academy Redevelopment","Bogota Arena","UIC School of Public Health","Humboldt Park Wellness Center","Grace Manor","EPA Headquarters","CircEsteem","Poder Headquarters","Lurie Children's Hospital - Pediatrics in Uptown Refresh","Lathrop Homes Redevelopment Masterplan","SAIC Cap graphics"],"projectImages":{}};
+let gameState = Array(9).fill(null);
+let currentCell = null;
+let score = 0;
+let guessesLeft = 9;
+
+function startGame() {
+document.getElementById("welcome-modal").classList.remove("active");
+}
+
+function buildGrid() {
+const grid = document.getElementById("grid");
+grid.innerHTML = "";
+const corner = document.createElement("div");
+corner.className = "grid-header corner";
+corner.textContent = "JGMAtrix";
+grid.appendChild(corner);
+GAME_DATA.cols.forEach(col => {
+const header = document.createElement("div");
+header.className = "grid-header";
+header.textContent = col;
+grid.appendChild(header);
+});
+for (let row = 0; row < 3; row++) {
+const rowHeader = document.createElement("div");
+rowHeader.className = "grid-header";
+rowHeader.textContent = GAME_DATA.rows[row];
+grid.appendChild(rowHeader);
+for (let col = 0; col < 3; col++) {
+const cellIndex = row * 3 + col;
+const cell = document.createElement("div");
+cell.className = "grid-cell";
+cell.dataset.index = cellIndex;
+cell.dataset.row = row;
+cell.dataset.col = col;
+cell.onclick = () => openModal(cellIndex, row, col);
+grid.appendChild(cell);
+}
+}
+}
+
+function openModal(cellIndex, row, col) {
+if (gameState[cellIndex] !== null || guessesLeft === 0) return;
+currentCell = cellIndex;
+const question = GAME_DATA.rows[row] + " + " + GAME_DATA.cols[col];
+document.getElementById("modal-question").textContent = question;
+document.getElementById("modal-input").value = "";
+document.getElementById("autocomplete-list").innerHTML = "";
+document.getElementById("autocomplete-list").classList.remove("show");
+document.getElementById("modal").classList.add("active");
+document.getElementById("modal-input").focus();
+}
+
+function closeModal() {
+document.getElementById("modal").classList.remove("active");
+document.getElementById("autocomplete-list").classList.remove("show");
+currentCell = null;
+}
+
+function filterAutocomplete() {
+const input = document.getElementById("modal-input");
+const query = input.value.toLowerCase();
+const list = document.getElementById("autocomplete-list");
+list.innerHTML = "";
+if (query === "") {
+list.classList.remove("show");
+return;
+}
+const filtered = GAME_DATA.projectLibrary.filter(p => p.toLowerCase().includes(query));
+if (filtered.length > 0) {
+filtered.forEach(project => {
+const item = document.createElement("div");
+item.className = "autocomplete-item";
+item.textContent = project;
+item.onclick = () => selectAutocomplete(project);
+list.appendChild(item);
+});
+list.classList.add("show");
+} else {
+list.classList.remove("show");
+}
+}
+
+function selectAutocomplete(project) {
+document.getElementById("modal-input").value = project;
+document.getElementById("autocomplete-list").classList.remove("show");
+}
+
+document.addEventListener("click", function(e) {
+if (!e.target.closest(".autocomplete-wrapper")) {
+document.getElementById("autocomplete-list").classList.remove("show");
+}
+});
+
+document.getElementById("modal-input").addEventListener("input", filterAutocomplete);
+document.getElementById("modal-input").addEventListener("keypress", function(e) {
+if (e.key === "Enter") {
+const list = document.getElementById("autocomplete-list");
+if (list.classList.contains("show") && list.children.length > 0) {
+selectAutocomplete(list.children[0].textContent);
+}
+submitAnswer();
+}
+});
+
+function submitAnswer() {
+const answer = document.getElementById("modal-input").value.trim();
+if (!answer) return;
+const row = Math.floor(currentCell / 3);
+const col = currentCell % 3;
+const cellKey = row + "-" + col;
+const cell = document.querySelector('[data-index="' + currentCell + '"]');
+const acceptedAnswers = GAME_DATA.answers[cellKey] || [];
+const isCorrect = acceptedAnswers.some(a => a.toLowerCase() === answer.toLowerCase());
+gameState[currentCell] = { answer: answer, correct: isCorrect };
+guessesLeft--;
+
+if (isCorrect) {
+cell.classList.add("correct");
+const hasImage = GAME_DATA.projectImages && GAME_DATA.projectImages[answer];
+if (hasImage) {
+cell.innerHTML = '<img src="' + GAME_DATA.projectImages[answer] + '" class="cell-image"><div class="cell-checkmark">✓</div>';
+} else {
+cell.innerHTML = '<div class="cell-answer">' + answer + '</div><div class="cell-status">✓</div>';
+}
+score++;
+} else {
+cell.classList.add("incorrect");
+cell.innerHTML = '<div class="cell-answer">' + answer + '</div><div class="cell-status">✗</div>';
+}
+
+updateScore();
+closeModal();
+
+if (guessesLeft === 0) {
+setTimeout(showCompletion, 500);
+}
+}
+
+function updateScore() {
+document.getElementById("score").textContent = score + "/9";
+document.getElementById("guesses").textContent = guessesLeft;
+}
+
+function showCompletion() {
+document.getElementById("final-score").textContent = score;
+displayResultGrid();
+document.getElementById("completion").style.display = "block";
+}
+
+function displayResultGrid() {
+const resultDiv = document.getElementById("result-display");
+const gridHTML = '<div class="result-grid">' + 
+gameState.map(cell => {
+if (!cell) return '<div class="result-cell">⬜</div>';
+return cell.correct ? '<div class="result-cell">🟩</div>' : '<div class="result-cell">⬜</div>';
+}).join('') + '</div>';
+resultDiv.innerHTML = gridHTML;
+}
+
+function shareResults() {
+const today = new Date();
+const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const gridText = gameState.map((cell, i) => {
+if (i % 3 === 0 && i !== 0) return '\n' + (cell && cell.correct ? '🟩' : '⬜');
+return cell && cell.correct ? '🟩' : '⬜';
+}).join('');
+
+const shareText = 'JGMAtrix: ' + dateStr + '\n\nI got ' + score + '/9 Correct\n\n' + gridText;
+
+if (navigator.clipboard) {
+navigator.clipboard.writeText(shareText).then(() => {
+alert('Results copied to clipboard! You can now paste and share.');
+});
+} else {
+const textarea = document.createElement('textarea');
+textarea.value = shareText;
+document.body.appendChild(textarea);
+textarea.select();
+document.execCommand('copy');
+document.body.removeChild(textarea);
+alert('Results copied to clipboard! You can now paste and share.');
+}
+}
+
+function resetGame() {
+gameState = Array(9).fill(null);
+score = 0;
+guessesLeft = 9;
+updateScore();
+buildGrid();
+document.getElementById("completion").style.display = "none";
+}
+
+window.onload = buildGrid;
+</script>
+</body>
+</html>
